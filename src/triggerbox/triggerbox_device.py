@@ -43,8 +43,8 @@ class SerialThread(threading.Thread):
 
     def _set_ICR1_AND_PRESCALER( self, new_value ):
         icr1, prescaler = new_value
-        print(icr1)
-        print(prescaler)
+        #print(icr1)
+        #print(prescaler)
         #50000
         #64
         # https://docs.python.org/3/library/struct.html
@@ -185,7 +185,7 @@ class SerialThread(threading.Thread):
         ino_time_estimate = (now+send_timestamp)*0.5
 
         if self.ICR1_AND_PRESCALER is None:
-            self._log.warn('No clock measurements until framerate set.')
+            self._log.warning('No clock measurements until framerate set.')
             return
 
         icr1, prescaler = self.ICR1_AND_PRESCALER
@@ -359,7 +359,7 @@ class TriggerboxDevice(threading.Thread):
             tdata = np.array(self.times[-100:])
             try:
                 self.time_model = get_time_model(tdata[:,1], tdata[:,0], max_residual=0.1)
-            except(TimeFitError, err):
+            except TimeFitError as err:
                 self._log.warn('error fitting time_model: %s'%err)
             else:
                 self._notify_clockmodel(self.time_model.gain, self.time_model.offset)
@@ -480,6 +480,7 @@ if __name__=='__main__':
     logging.basicConfig(level=logging.DEBUG)
     td = TriggerboxDevice(port)
     for i in itertools.cycle(range(5,200,10)):
+    #for i in itertools.cycle([125,250]):
         td.set_triggerrate(i)
         time.sleep(10)
 
