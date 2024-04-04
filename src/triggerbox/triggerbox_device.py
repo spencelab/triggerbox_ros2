@@ -43,19 +43,34 @@ class SerialThread(threading.Thread):
 
     def _set_ICR1_AND_PRESCALER( self, new_value ):
         icr1, prescaler = new_value
+        print(icr1)
+        print(prescaler)
+        #50000
+        #64
+        # https://docs.python.org/3/library/struct.html
+        # 
         chars = struct.pack('<H',icr1) # little-endian unsigned short
+        #print(chars)
+        #print(type(chars))
+        #b'P\xc3'
+        #<class 'bytes'>
+        #
         assert len(chars)==2
-        #vals = [ord(c) for c in chars]
-        vals = chars
+        #vals = [ord(c) for c in chars] <- this makes a list of ints? https://www.w3schools.com/python/ref_func_ord.asp
+        vals = chars # in python3 chars as bytes can be shift operated with <<
+        # confirmed that operation below for python3 reproduces eg icr1 50000 when that is input.
         self.ICR1_AND_PRESCALER = ((vals[1] << 8) + vals[0], prescaler)
         assert self.ICR1_AND_PRESCALER==new_value
+        # Ok - this was just going to append the character 1 or 2 
+        # to the output string. The firmware just uses 1 and 2 as
+        # keys to set either 8 or 64...
         if prescaler==8:
-            chars += '1'
+            chars += b'1'
         elif prescaler==64:
-            chars += '2'
+            chars += b'2'
         else:
             raise ValueError('unsupported prescaler: %s'%prescaler)
-        self.ser.write('T='+chars)
+        self.ser.write(b'T='+chars)
 
     def _set_AOUT( self, aout0, aout1 ):
         aout0_chars = struct.pack('<H', aout0) # little-endian unsigned short
@@ -63,7 +78,7 @@ class SerialThread(threading.Thread):
         aout1_chars = struct.pack('<H', aout1) # little-endian unsigned short
         assert len(aout1_chars)==2
         chars = aout0_chars + aout1_chars + chr(self._aout_seq)
-        self.ser.write('O='+chars)
+        self.ser.write(b'O='+chars)
         self._last_aout_sequence = self._aout_seq, aout0, aout1
         self._aout_seq += 1
         self._aout_seq = self._aout_seq % 256
