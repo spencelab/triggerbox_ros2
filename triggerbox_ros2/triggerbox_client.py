@@ -1,15 +1,16 @@
 import time
 import numpy as np
 
-import roslib
-roslib.load_manifest('triggerbox')
-import rospy
+#import roslib
+#roslib.load_manifest('triggerbox')
+#import rospy
+import rclpy
 
 from triggerbox.api import TriggerboxAPI
 from triggerbox.time_model import get_time_model, TimeFitError
-from triggerbox.msg import TriggerClockModel, TriggerClockMeasurement, \
+from triggerbox_ros2_interfaces.msg import TriggerClockModel, TriggerClockMeasurement, \
     AOutVolts, AOutRaw
-from triggerbox.srv import SetFramerate
+from triggerbox_ros2_interfaces.srv import SetFramerate
 
 import std_msgs.msg
 

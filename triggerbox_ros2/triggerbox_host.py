@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 import argparse
 import numpy as np
 import time
@@ -11,9 +11,11 @@ import rclpy
 from rclpy.node import Node
 
 from triggerbox.api import TriggerboxAPI
-from triggerbox.msg import TriggerClockModel, AOutVolts, AOutRaw, AOutConfirm, \
+from triggerbox_ros2_interfaces.msg import TriggerClockModel, AOutVolts, AOutRaw, AOutConfirm, \
      TriggerClockMeasurement
-from triggerbox.srv import SetFramerate, SetFramerateResponse
+# Hmm wow the response is a function that gets defined by the ROS framework.
+# Let's hope it's the same in ROS 2.
+from triggerbox_ros2_interfaces.srv import SetFramerate, SetFramerateResponse
 from triggerbox.triggerbox_device import TriggerboxDevice
 
 import std_msgs
@@ -194,7 +196,9 @@ class TriggerboxHost(TriggerboxDevice, TriggerboxAPI, Node):
         node.get_logger().info('triggerbox_host: synchronizing')
         self.pause_and_reset(pause_duration_seconds)
 
-if __name__=='__main__':
+# Need a main() function because we have to specify as the entry point
+# in setup.py...
+def main()
     # ros 1
     # rospy.init_node('triggerbox_host')
     # ros2
@@ -210,4 +214,7 @@ if __name__=='__main__':
     rclpy.spin(tb)
     tb.destroy_node() # apparently optional...
     rclpy.shutdown()
+    
+if __name__=='__main__':
+    main()
     
