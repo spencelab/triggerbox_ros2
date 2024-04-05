@@ -6,7 +6,7 @@ def model_remote_to_local(remote_timestamps, local_timestamps):
     a2=np.ones( (len(remote_timestamps),1))
     A = np.hstack(( a1,a2))
     b = local_timestamps[:,np.newaxis]
-    x,resids,rank,s = np.linalg.lstsq(A,b)
+    x,resids,rank,s = np.linalg.lstsq(A,b,rcond=None)
     gain = x[0,0]
     offset = x[1,0]
     return gain, offset, resids
