@@ -3,9 +3,12 @@ import argparse
 import numpy as np
 import time
 
-import roslib; roslib.load_manifest('triggerbox')
+# import roslib; roslib.load_manifest('triggerbox')
+# ? ros2
 
-import rospy
+#import rospy
+import rclpy
+from rclpy.node import Node
 
 from triggerbox.api import TriggerboxAPI
 from triggerbox.msg import TriggerClockModel, AOutVolts, AOutRaw, AOutConfirm, \
@@ -27,48 +30,55 @@ def _make_ros_topic(base, other):
 
     return base + '/' + other
 
-class TriggerboxHost(TriggerboxDevice, TriggerboxAPI):
-    '''an in-process version of the triggerbox client with identical API'''
+class TriggerboxHost(TriggerboxDevice, TriggerboxAPI, Node):
+    '''an in-process version of the triggerbox client with identical API
+       porting to ROS2 - added Node as third multiple super, so prior code
+       see first two supers first. Hopefully they dont mask any ROS2 node stuff.'''
     def __init__(self, device,ros_topic_base='~'):
-
+        Node.__init__('triggerbox_host')
+        # if above doesn't work could try below; goal is to call parent Node init:
+        # super(TriggerboxHost,TriggerboxAPI).__init__('triggerbox_host')
+        
         self._gain = np.nan
         self._offset = np.nan
         self._expected_framerate = None
 
-        self.pub_time = rospy.Publisher(
+        self.pub_time = self.create_publisher(
                                 _make_ros_topic(ros_topic_base,'time_model'),
                                 TriggerClockModel)
-        self.pub_rate = rospy.Publisher(
+        self.pub_rate = self.create_publisher
                                 _make_ros_topic(ros_topic_base,'expected_framerate'),
                                 std_msgs.msg.Float32,
                                 latch=True)
-        self.pub_raw = rospy.Publisher(
+        self.pub_raw = self.create_publisher
                                 _make_ros_topic(ros_topic_base,'raw_measurements'),
                                 TriggerClockMeasurement)
-        self.pub_aout_confirm = rospy.Publisher(
+        self.pub_aout_confirm = self.create_publisher
                                 _make_ros_topic(ros_topic_base,'aout_confirm'),
                                 AOutConfirm)
-
+        # hmm will this pass device to Node?
+        # Ok TriggerboxDevice takes on input arg to __init__ which is device
+        # TriggerboxAPI has no __init__ so this was supposed to his the dev.
         super(TriggerboxHost,self).__init__(device)
 
-        rospy.Subscriber(
+        self.set_trig_sub = self.create_subscription(
                 _make_ros_topic(ros_topic_base,'set_triggerrate'),
                 std_msgs.msg.Float32,
                 self._on_set_triggerrate)
-        rospy.Subscriber(
+        self.pause_reset_sub = self.create_subscription(
                 _make_ros_topic(ros_topic_base,'pause_and_reset'),
                 std_msgs.msg.Float32,
                 self._on_pause_and_reset)
-        rospy.Subscriber(
+        self.aout_volts_sub = self.create_subscription(
                 _make_ros_topic(ros_topic_base,'aout_volts'),
                 AOutVolts,
                 self._on_aout_volts)
-        rospy.Subscriber(
+        self.aout_raw_sub = self.create_subscription(
                 _make_ros_topic(ros_topic_base,'aout_raw'),
                 AOutRaw,
                 self._on_aout_raw)
 
-        rospy.Service(
+        self.set_framerate_srv = self.create_service(
                 _make_ros_topic(ros_topic_base,'set_framerate'),
                 SetFramerate,
                 self._on_set_framerate_service)
@@ -141,7 +151,7 @@ class TriggerboxHost(TriggerboxDevice, TriggerboxAPI):
         self._api_callback(self.fatal_error_callback, msg)
 
     def _notify_connected(self, name, device):
-        rospy.loginfo("triggerbox_host: connected to %r on device %r" % (name, device))
+        node.get_logger().info("triggerbox_host: connected to %r on device %r" % (name, device))
         self._api_callback(self.connected_callback, name, device)
 
     #ClientAPI
@@ -150,9 +160,9 @@ class TriggerboxHost(TriggerboxDevice, TriggerboxAPI):
 
     def wait_for_estimate(self):
         while not self.have_estimate():
-            rospy.loginfo('triggerbox_host: waiting for clockmodel estimate')
+            node.get_logger().info('triggerbox_host: waiting for clockmodel estimate')
             time.sleep(0.5)
-        rospy.loginfo('triggerbox_host: got clockmodel estimate')
+        node.get_logger().info('triggerbox_host: got clockmodel estimate')
 
     def timestamp2framestamp(self, timestamp ):
         return (timestamp-self._offset)/self._gain
@@ -171,23 +181,33 @@ class TriggerboxHost(TriggerboxDevice, TriggerboxAPI):
         return result
 
     def set_frames_per_second(self,value):
-        rospy.loginfo('triggerbox_host: setting FPS to %s' % value)
+        node.get_logger().info('triggerbox_host: setting FPS to %s' % value)
         self.set_triggerrate(value)
 
     def set_frames_per_second_blocking(self, *args, **kwargs):
         while not self.connected:
-            rospy.loginfo('triggerbox_host: waiting for connection')
+            node.get_logger().info('triggerbox_host: waiting for connection')
             time.sleep(0.5)
         self.set_frames_per_second(*args, **kwargs)
 
     def synchronize(self, pause_duration_seconds=2 ):
-        rospy.loginfo('triggerbox_host: synchronizing')
+        node.get_logger().info('triggerbox_host: synchronizing')
         self.pause_and_reset(pause_duration_seconds)
 
 if __name__=='__main__':
-    rospy.init_node('triggerbox_host')
+    # ros 1
+    # rospy.init_node('triggerbox_host')
+    # ros2
+    rclpy.init(args=sys.argv)
+    # node = rclpy.create_node('triggerbox_host') <- dont need it's super of tb
+    # The bellow will initialize a node from it's superclass;
     tb = TriggerboxHost('/dev/ttyUSB0')
     tb.set_frames_per_second_blocking(25.0)
     tb.wait_for_estimate()
-    rospy.spin()
-
+    # ros 1
+    # rospy.spin()
+    # ros 2
+    rclpy.spin(tb)
+    tb.destroy_node() # apparently optional...
+    rclpy.shutdown()
+    

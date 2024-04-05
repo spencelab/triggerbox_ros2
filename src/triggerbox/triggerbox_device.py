@@ -258,6 +258,7 @@ def queue_to_func(q,func):
 class TriggerboxDevice(threading.Thread):
 
     def __init__(self, device):
+        # python3 below might just be super()
         super(TriggerboxDevice,self).__init__(name="triggerbox device")
         self.daemon = True
 
