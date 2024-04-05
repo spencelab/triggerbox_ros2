@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import sys
 import argparse
 import numpy as np
 import time
@@ -10,15 +11,15 @@ import time
 import rclpy
 from rclpy.node import Node
 
-from triggerbox.api import TriggerboxAPI
+from triggerbox_ros2.api import TriggerboxAPI
 from triggerbox_ros2_interfaces.msg import TriggerClockModel, AOutVolts, AOutRaw, AOutConfirm, \
      TriggerClockMeasurement
 # Hmm wow the response is a function that gets defined by the ROS framework.
 # Let's hope it's the same in ROS 2.
-from triggerbox_ros2_interfaces.srv import SetFramerate, SetFramerateResponse
-from triggerbox.triggerbox_device import TriggerboxDevice
+from triggerbox_ros2_interfaces.srv import SetFramerate
+from triggerbox_ros2.triggerbox_device import TriggerboxDevice
 
-import std_msgs
+import std_msgs.msg
 
 def _make_ros_topic(base, other):
     if base == '~':
@@ -37,27 +38,34 @@ class TriggerboxHost(TriggerboxDevice, TriggerboxAPI, Node):
        porting to ROS2 - added Node as third multiple super, so prior code
        see first two supers first. Hopefully they dont mask any ROS2 node stuff.'''
     def __init__(self, device,ros_topic_base='~'):
-        Node.__init__('triggerbox_host')
+        #Node.__init__('triggerbox_host')
         # if above doesn't work could try below; goal is to call parent Node init:
-        # super(TriggerboxHost,TriggerboxAPI).__init__('triggerbox_host')
+        super(TriggerboxAPI,self).__init__('triggerbox_host')
         
         self._gain = np.nan
         self._offset = np.nan
         self._expected_framerate = None
 
         self.pub_time = self.create_publisher(
-                                _make_ros_topic(ros_topic_base,'time_model'),
-                                TriggerClockModel)
-        self.pub_rate = self.create_publisher
-                                _make_ros_topic(ros_topic_base,'expected_framerate'),
+                                TriggerClockModel,
+                                'time_model',
+                                10)
+        # This quality of service roughly emulates latch=True from ROS1 happarently.
+        # https://pypi.org/project/rosros/
+        qos = rclpy.qos.QoSProfile(depth=2,
+                 durability=rclpy.qos.DurabilityPolicy.TRANSIENT_LOCAL)
+        self.pub_rate = self.create_publisher(
                                 std_msgs.msg.Float32,
-                                latch=True)
-        self.pub_raw = self.create_publisher
-                                _make_ros_topic(ros_topic_base,'raw_measurements'),
-                                TriggerClockMeasurement)
-        self.pub_aout_confirm = self.create_publisher
-                                _make_ros_topic(ros_topic_base,'aout_confirm'),
-                                AOutConfirm)
+                                'expected_framerate',
+                                qos)
+        self.pub_raw = self.create_publisher(
+                                TriggerClockMeasurement,
+                                'raw_measurements',
+                                10)
+        self.pub_aout_confirm = self.create_publisher(
+                                AOutConfirm,
+                                'aout_confirm',
+                                10)
         # hmm will this pass device to Node?
         # Ok TriggerboxDevice takes on input arg to __init__ which is device
         # TriggerboxAPI has no __init__ so this was supposed to his the dev.
@@ -104,9 +112,9 @@ class TriggerboxHost(TriggerboxDevice, TriggerboxAPI, Node):
         rospy.loginfo('triggerbox_host: _on_aout_raw %s'%_msg)
         self.set_aout_ab_raw(_msg.aout0,_msg.aout1)
 
-    def _on_set_framerate_service(self, req):
-        self.set_frames_per_second_blocking(req.data)
-        return SetFramerateResponse()
+    def _on_set_framerate_service(self, request, response):
+        self.set_frames_per_second_blocking(request.data)
+        return response
 
     def _on_emit_framerate(self, _=None):
         if self._expected_framerate is not None:
@@ -198,7 +206,7 @@ class TriggerboxHost(TriggerboxDevice, TriggerboxAPI, Node):
 
 # Need a main() function because we have to specify as the entry point
 # in setup.py...
-def main()
+def main():
     # ros 1
     # rospy.init_node('triggerbox_host')
     # ros2

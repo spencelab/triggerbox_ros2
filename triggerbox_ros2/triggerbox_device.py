@@ -6,8 +6,8 @@ import struct
 import argparse
 import logging
 
-from time_model import get_time_model, TimeFitError
-from arduinoudev import serial_handshake
+from triggerbox_ros2.time_model import get_time_model, TimeFitError
+from triggerbox_ros2.arduinoudev import serial_handshake
 
 def uint32(b0,b1,b2,b3):
     return (b3 << 24) + (b2 << 16) + (b1 << 8) + b0

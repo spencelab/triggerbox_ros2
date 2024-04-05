@@ -6,8 +6,8 @@ import numpy as np
 #import rospy
 import rclpy
 
-from triggerbox.api import TriggerboxAPI
-from triggerbox.time_model import get_time_model, TimeFitError
+from triggerbox_ros2.api import TriggerboxAPI
+from triggerbox_ros2.time_model import get_time_model, TimeFitError
 from triggerbox_ros2_interfaces.msg import TriggerClockModel, TriggerClockMeasurement, \
     AOutVolts, AOutRaw
 from triggerbox_ros2_interfaces.srv import SetFramerate
