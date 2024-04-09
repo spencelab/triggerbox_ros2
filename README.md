@@ -45,3 +45,10 @@ Unpacking python3-serial (3.5-1) ...
 Setting up python3-serial (3.5-1) ...
 #All required rosdeps installed successfully
 ```
+
+Gah close need to do that dialout group user add jawn probably
+
+```
+serial.serialutil.SerialException: [Errno 13] could not open port /dev/ttyACM0: [Errno 13] Permission denied: '/dev/ttyACM0'
+Traceback (most recent call last):
+```
