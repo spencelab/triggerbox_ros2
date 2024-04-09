@@ -23,7 +23,8 @@ Getting running on the lenovo box with trig5 arduino
 1. Forgot to commit setup.cfg so it couldnt' find triggerbox_host executable... fixed.
 2. Didn't have serial... did
 
-```spencelab@ros2test:~/ros2_ws$ rosdep install --from-paths src -y --ignore-src
+```
+spencelab@ros2test:~/ros2_ws$ rosdep install --from-paths src -y --ignore-src
 executing command [sudo -H apt-get install -y python3-serial]
 Reading package lists... Done
 Building dependency tree... Done
