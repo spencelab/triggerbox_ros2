@@ -136,3 +136,7 @@ offset: 1712791031.6713362
 ```
 
 But this page makes me think I should have node names before topics etc. (https://docs.ros.org/en/humble/Tutorials/Beginner-CLI-Tools/Understanding-ROS2-Topics/Understanding-ROS2-Topics.html#rqt-graph)
+
+YES! For rqt to see your custom message types and thus display them in the topic monitor you must do `. install/setup.bash` before `rqt` then it works.
+
+It's publishing to /time_model
