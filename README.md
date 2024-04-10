@@ -45,3 +45,98 @@ Unpacking python3-serial (3.5-1) ...
 Setting up python3-serial (3.5-1) ...
 #All required rosdeps installed successfully
 ```
+### Access to serial port
+Gah close need to do that dialout group user add jawn probably
+
+```
+serial.serialutil.SerialException: [Errno 13] could not open port /dev/ttyACM0: [Errno 13] Permission denied: '/dev/ttyACM0'
+Traceback (most recent call last):
+```
+Fixed!
+
+Find your groups `groups spencelab`
+
+Does not include dialout.
+
+`sudo adduser spencelab dialout`
+
+**REBOOT** the machine! Logging in and out is not enough!
+
+New error...
+
+### It's running!
+
+But I think my topics are missing the node name in front etc. ALSO must always remember to `. install/setup.bash`!
+
+So i get now:
+```
+spencelab@ros2test:~/ros2_ws$ . install/setup.bash 
+spencelab@ros2test:~/ros2_ws$ ros2 topic list
+/aout_confirm
+/aout_raw
+/aout_volts
+/expected_framerate
+/parameter_events
+/pause_and_reset
+/raw_measurements
+/rosout
+/set_triggerrate
+/time_model
+spencelab@ros2test:~/ros2_ws$ ros2 topic list -t
+/aout_confirm [triggerbox_ros2_interfaces/msg/AOutConfirm]
+/aout_raw [triggerbox_ros2_interfaces/msg/AOutRaw]
+/aout_volts [triggerbox_ros2_interfaces/msg/AOutVolts]
+/expected_framerate [std_msgs/msg/Float32]
+/parameter_events [rcl_interfaces/msg/ParameterEvent]
+/pause_and_reset [std_msgs/msg/Float32]
+/raw_measurements [triggerbox_ros2_interfaces/msg/TriggerClockMeasurement]
+/rosout [rcl_interfaces/msg/Log]
+/set_triggerrate [std_msgs/msg/Float32]
+/time_model [triggerbox_ros2_interfaces/msg/TriggerClockModel]
+spencelab@ros2test:~/ros2_ws$ ros2 topic echo /raw_measurements 
+start_timestamp: 1712791137.2870135
+pulsenumber: 10550
+fraction_n_of_255: 110
+stop_timestamp: 1712791137.2923086
+---
+start_timestamp: 1712791138.2945035
+pulsenumber: 10650
+fraction_n_of_255: 18
+stop_timestamp: 1712791138.2998571
+---
+start_timestamp: 1712791139.3024065
+pulsenumber: 10751
+fraction_n_of_255: 191
+stop_timestamp: 1712791139.3076122
+---
+start_timestamp: 1712791140.3100817
+pulsenumber: 10852
+fraction_n_of_255: 103
+stop_timestamp: 1712791140.3148384
+---
+start_timestamp: 1712791141.318424
+pulsenumber: 10953
+fraction_n_of_255: 33
+stop_timestamp: 1712791141.3223727
+---
+^Cspencelab@ros2test:~/ros2_ws$ ros2 topic echo /time_model
+gain: 0.010010829431015212
+offset: 1712791031.6713433
+---
+gain: 0.010010877060864001
+offset: 1712791031.671114
+---
+gain: 0.01001086394535979
+offset: 1712791031.6712198
+---
+gain: 0.010010850077359702
+offset: 1712791031.6713362
+---
+
+```
+
+But this page makes me think I should have node names before topics etc. (https://docs.ros.org/en/humble/Tutorials/Beginner-CLI-Tools/Understanding-ROS2-Topics/Understanding-ROS2-Topics.html#rqt-graph)
+
+YES! For rqt to see your custom message types and thus display them in the topic monitor you must do `. install/setup.bash` before `rqt` then it works.
+
+It's publishing to /time_model
