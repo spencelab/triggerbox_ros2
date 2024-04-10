@@ -72,44 +72,49 @@ class TriggerboxHost(TriggerboxDevice, TriggerboxAPI, Node):
         super(TriggerboxHost,self).__init__(device)
 
         self.set_trig_sub = self.create_subscription(
-                _make_ros_topic(ros_topic_base,'set_triggerrate'),
                 std_msgs.msg.Float32,
-                self._on_set_triggerrate)
+                'set_triggerrate',
+                self._on_set_triggerrate,
+                10)
         self.pause_reset_sub = self.create_subscription(
-                _make_ros_topic(ros_topic_base,'pause_and_reset'),
                 std_msgs.msg.Float32,
-                self._on_pause_and_reset)
+                'pause_and_reset',
+                self._on_pause_and_reset,
+                10)
         self.aout_volts_sub = self.create_subscription(
-                _make_ros_topic(ros_topic_base,'aout_volts'),
                 AOutVolts,
-                self._on_aout_volts)
+                'aout_volts',
+                self._on_aout_volts,
+                10)
         self.aout_raw_sub = self.create_subscription(
-                _make_ros_topic(ros_topic_base,'aout_raw'),
                 AOutRaw,
-                self._on_aout_raw)
-
+                'aout_raw',
+                self._on_aout_raw,
+                10)
         self.set_framerate_srv = self.create_service(
-                _make_ros_topic(ros_topic_base,'set_framerate'),
                 SetFramerate,
+                'set_framerate',
                 self._on_set_framerate_service)
 
         # emit expected frame rate every 5 seconds
-        rospy.Timer(rospy.Duration(5.0), self._on_emit_framerate)
+        self.timer = self.create_timer(5.0, self._on_emit_framerate)
+        
+        rclpy.logging.set_logger_level('/triggerbox_host',rclpy.logging.LoggingSeverity.DEBUG)
 
     def _on_set_triggerrate(self,_msg):
-        rospy.loginfo('triggerbox_host: _on_set_triggerrate %s'%_msg.data)
+        self.get_logger().info('triggerbox_host: _on_set_triggerrate %s'%_msg.data)
         self.set_triggerrate(_msg.data)
 
     def _on_pause_and_reset(self,_msg):
-        rospy.loginfo('triggerbox_host: _on_pause_and_reset %s'%_msg.data)
+        self.get_logger().info('triggerbox_host: _on_pause_and_reset %s'%_msg.data)
         self.pause_and_reset(_msg.data)
 
     def _on_aout_volts(self,_msg):
-        rospy.loginfo('triggerbox_host: _on_aout_volts %s'%_msg)
+        self.get_logger().info('triggerbox_host: _on_aout_volts %s'%_msg)
         self.set_aout_ab_volts(_msg.aout0,_msg.aout1)
 
     def _on_aout_raw(self,_msg):
-        rospy.loginfo('triggerbox_host: _on_aout_raw %s'%_msg)
+        self.get_logger().info('triggerbox_host: _on_aout_raw %s'%_msg)
         self.set_aout_ab_raw(_msg.aout0,_msg.aout1)
 
     def _on_set_framerate_service(self, request, response):
@@ -118,18 +123,26 @@ class TriggerboxHost(TriggerboxDevice, TriggerboxAPI, Node):
 
     def _on_emit_framerate(self, _=None):
         if self._expected_framerate is not None:
-            self.pub_rate.publish(self._expected_framerate)
+            etr = std_msgs.msg.Float32()
+            etr.data = self._expected_framerate
+            self.pub_rate.publish(etr)
 
     #Callbacks from the underlying hardware
     def _notify_framerate(self, expected_trigger_rate):
         self._expected_framerate = expected_trigger_rate
-        self.pub_rate.publish(self._expected_framerate)
+        etr = std_msgs.msg.Float32()
+        etr.data = expected_trigger_rate
+        self.pub_rate.publish(etr)
         self._api_callback(self.framerate_callback, expected_trigger_rate)
 
     def _notify_clockmodel(self, gain, offset):
         self._gain = gain
         self._offset = offset
-        self.pub_time.publish(self._gain, self._offset)
+        model = TriggerClockModel()
+        model.gain = gain
+        model.offset = offset
+        self.get_logger().info('Got clock model')
+        self.pub_time.publish(model)
         self._api_callback(self.clockmodel_callback, gain, offset)
 
     def _notify_clock_measurement(self, start_timestamp, pulsenumber, fraction_n_of_255, stop_timestamp):
@@ -139,10 +152,14 @@ class TriggerboxHost(TriggerboxDevice, TriggerboxAPI, Node):
             #fraction value that exceeds 255 here. Ignore it.
             #If a similar bogus value made it into the model, it will
             #eventually be filtered out anyway
-            rospy.logerr("triggerbox_host: invalid raw clock measurment. fraction %s exceeds 255" % fraction_n_of_255)
+            self.get_logger().error("triggerbox_host: invalid raw clock measurment. fraction %s exceeds 255" % fraction_n_of_255)
             return
-
-        self.pub_raw.publish(start_timestamp, pulsenumber, fraction_n_of_255, stop_timestamp)
+        tcm=TriggerClockMeasurement()
+        tcm.start_timestamp = start_timestamp
+        tcm.pulsenumber = pulsenumber
+        tcm.fraction_n_of_255 = fraction_n_of_255
+        tcm.stop_timestamp = stop_timestamp
+        self.pub_raw.publish(tcm)
         self._api_callback(self.clock_measurement_callback, start_timestamp, pulsenumber, fraction_n_of_255, stop_timestamp)
 
     def _notify_aout_confirm(self, pulsenumber, fraction_n_of_255, aout0, aout1):
@@ -150,18 +167,20 @@ class TriggerboxHost(TriggerboxDevice, TriggerboxAPI, Node):
             #occasionally, when changing framerates, and due to the async
             #and out-of-order nature of comms with the hardware, we gen a
             #fraction value that exceeds 255 here. Ignore it.
-            rospy.logerr("triggerbox_host: invalid raw clock measurment. fraction %s exceeds 255" % fraction_n_of_255)
+            self.get_logger().errror("triggerbox_host: invalid raw clock measurment. fraction %s exceeds 255" % fraction_n_of_255)
             return
 
         self.pub_aout_confirm.publish(pulsenumber, fraction_n_of_255, aout0, aout1)
 
     def _notify_fatal_error(self, msg):
-        rospy.logfatal(msg)
-        rospy.signal_shutdown(msg)
+        self.get_logger().fatal(msg)
+        # This might not be the right thing in ROS2 - may hang. Was rospy.signal_shutdown()....
+        # Some web pages say raise SystemExit() and wrap the spin() in a try catch for it...
+        rclpy.shutdown(msg)
         self._api_callback(self.fatal_error_callback, msg)
 
     def _notify_connected(self, name, device):
-        node.get_logger().info("triggerbox_host: connected to %r on device %r" % (name, device))
+        self.get_logger().info("triggerbox_host: connected to %r on device %r" % (name, device))
         self._api_callback(self.connected_callback, name, device)
 
     #ClientAPI
@@ -170,9 +189,9 @@ class TriggerboxHost(TriggerboxDevice, TriggerboxAPI, Node):
 
     def wait_for_estimate(self):
         while not self.have_estimate():
-            node.get_logger().info('triggerbox_host: waiting for clockmodel estimate')
+            self.get_logger().info('triggerbox_host: waiting for clockmodel estimate')
             time.sleep(0.5)
-        node.get_logger().info('triggerbox_host: got clockmodel estimate')
+        self.get_logger().info('triggerbox_host: got clockmodel estimate')
 
     def timestamp2framestamp(self, timestamp ):
         return (timestamp-self._offset)/self._gain
@@ -191,17 +210,17 @@ class TriggerboxHost(TriggerboxDevice, TriggerboxAPI, Node):
         return result
 
     def set_frames_per_second(self,value):
-        node.get_logger().info('triggerbox_host: setting FPS to %s' % value)
+        self.get_logger().info('triggerbox_host: setting FPS to %s' % value)
         self.set_triggerrate(value)
 
     def set_frames_per_second_blocking(self, *args, **kwargs):
         while not self.connected:
-            node.get_logger().info('triggerbox_host: waiting for connection')
+            self.get_logger().info('triggerbox_host: waiting for connection')
             time.sleep(0.5)
         self.set_frames_per_second(*args, **kwargs)
 
     def synchronize(self, pause_duration_seconds=2 ):
-        node.get_logger().info('triggerbox_host: synchronizing')
+        self.get_logger().info('triggerbox_host: synchronizing')
         self.pause_and_reset(pause_duration_seconds)
 
 # Need a main() function because we have to specify as the entry point
@@ -213,8 +232,8 @@ def main():
     rclpy.init(args=sys.argv)
     # node = rclpy.create_node('triggerbox_host') <- dont need it's super of tb
     # The bellow will initialize a node from it's superclass;
-    tb = TriggerboxHost('/dev/ttyUSB0')
-    tb.set_frames_per_second_blocking(25.0)
+    tb = TriggerboxHost('/dev/ttyACM0')
+    tb.set_frames_per_second_blocking(100.0)
     tb.wait_for_estimate()
     # ros 1
     # rospy.spin()

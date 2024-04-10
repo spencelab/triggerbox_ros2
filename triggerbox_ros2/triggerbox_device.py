@@ -139,7 +139,10 @@ class SerialThread(threading.Thread):
                 # request sample
                 if (now - self._last_time) > QUERY_DT:
                     self._queries[ self._qi ] = now
-                    self.ser.write( ('P'+chr(self._qi)).encode('utf-8') )
+                    tosend = b'P' + self._qi.to_bytes(1,'little')
+                    #self._log.debug("Sending query %d" % self._qi)
+                    #self._log.debug"Sending over serial %s" % tosend )
+                    self.ser.write( tosend )
                     self._qi = (self._qi + 1) % 256
                     self._last_time = now
             else:
@@ -248,7 +251,7 @@ class SerialThread(threading.Thread):
 
                     pulsenumber = uint32(e0,e1,e2,e3)
                     count = uint16(t0,t1)
-
+                    #print(value)
                     if packet_type == 'P':
                         self._handle_returned_timestamp(value, pulsenumber, count )
                     elif packet_type == 'V':
@@ -285,7 +288,7 @@ class TriggerboxDevice(threading.Thread):
 
         self._connected = False
         self._log = logging.getLogger("trigger.device")
-
+        logging.basicConfig(level=logging.DEBUG)
         self.raw_q = queue.Queue()
         self.time_q = queue.Queue()
         self.outq = queue.Queue()
