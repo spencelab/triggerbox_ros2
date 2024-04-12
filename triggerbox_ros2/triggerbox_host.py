@@ -48,7 +48,7 @@ class TriggerboxHost(TriggerboxDevice, TriggerboxAPI, Node):
 
         self.pub_time = self.create_publisher(
                                 TriggerClockModel,
-                                'time_model',
+                                _make_ros_topic(ros_topic_base,'time_model'),
                                 10)
         # This quality of service roughly emulates latch=True from ROS1 happarently.
         # https://pypi.org/project/rosros/
@@ -56,15 +56,15 @@ class TriggerboxHost(TriggerboxDevice, TriggerboxAPI, Node):
                  durability=rclpy.qos.DurabilityPolicy.TRANSIENT_LOCAL)
         self.pub_rate = self.create_publisher(
                                 std_msgs.msg.Float32,
-                                'expected_framerate',
+                                _make_ros_topic(ros_topic_base,'expected_framerate'),
                                 qos)
         self.pub_raw = self.create_publisher(
                                 TriggerClockMeasurement,
-                                'raw_measurements',
+                                _make_ros_topic(ros_topic_base,'raw_measurements'),
                                 10)
         self.pub_aout_confirm = self.create_publisher(
                                 AOutConfirm,
-                                'aout_confirm',
+                                _make_ros_topic(ros_topic_base,'aout_confirm'),
                                 10)
         # hmm will this pass device to Node?
         # Ok TriggerboxDevice takes on input arg to __init__ which is device
@@ -73,27 +73,27 @@ class TriggerboxHost(TriggerboxDevice, TriggerboxAPI, Node):
 
         self.set_trig_sub = self.create_subscription(
                 std_msgs.msg.Float32,
-                'set_triggerrate',
+                _make_ros_topic(ros_topic_base,'set_triggerrate'),
                 self._on_set_triggerrate,
                 10)
         self.pause_reset_sub = self.create_subscription(
                 std_msgs.msg.Float32,
-                'pause_and_reset',
+                _make_ros_topic(ros_topic_base,'pause_and_reset'),
                 self._on_pause_and_reset,
                 10)
         self.aout_volts_sub = self.create_subscription(
                 AOutVolts,
-                'aout_volts',
+                _make_ros_topic(ros_topic_base,'aout_volts'),
                 self._on_aout_volts,
                 10)
         self.aout_raw_sub = self.create_subscription(
                 AOutRaw,
-                'aout_raw',
+                _make_ros_topic(ros_topic_base,'aout_raw'),
                 self._on_aout_raw,
                 10)
         self.set_framerate_srv = self.create_service(
                 SetFramerate,
-                'set_framerate',
+                _make_ros_topic(ros_topic_base,'set_framerate'),
                 self._on_set_framerate_service)
 
         # emit expected frame rate every 5 seconds
