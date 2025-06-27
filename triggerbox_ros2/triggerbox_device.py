@@ -45,7 +45,7 @@ class SerialThread(threading.Thread):
         icr1, prescaler = new_value
         #print(icr1)
         #print(prescaler)
-        #50000
+        #50000 -> this is for 5Hz...
         #64
         # https://docs.python.org/3/library/struct.html
         # 
@@ -54,7 +54,12 @@ class SerialThread(threading.Thread):
         #print(type(chars))
         #b'P\xc3'
         #<class 'bytes'>
-        #
+        # Equation for frequency: (for 250Hz) - see code below, ignores the 1.
+        # f_pwm=f_clock/(N*(1+TOP))
+        # choose scaler=64.
+        # f_pwm=16e6/(64*(1+TOP))
+        # 64*(1+TOP)=16e6/f_pwm
+        # TOP=16e6/(f_pwm*64) - 1=999
         assert len(chars)==2
         #vals = [ord(c) for c in chars] <- this makes a list of ints? https://www.w3schools.com/python/ref_func_ord.asp
         vals = chars # in python3 chars as bytes can be shift operated with <<
