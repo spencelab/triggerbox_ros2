@@ -18,7 +18,7 @@ exceptions parentheses...
 5. It runs! Fixing all the Queue to queue...
 6. 
 
-Getting running on the lenovo box with trig5 arduino
+# Getting running on the lenovo box with trig5 arduino
 
 1. Forgot to commit setup.cfg so it couldnt' find triggerbox_host executable... fixed.
 2. Didn't have serial... did
