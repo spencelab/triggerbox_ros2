@@ -140,3 +140,131 @@ But this page makes me think I should have node names before topics etc. (https:
 YES! For rqt to see your custom message types and thus display them in the topic monitor you must do `. install/setup.bash` before `rqt` then it works.
 
 It's publishing to /time_model
+
+### 2025-06-30 Re-up working!
+
+Ok I tried to do this again and had some issues with make_ros_topic - it was trying to make a topci `~time_model` in old school ros1 and ros2 requires the slash `~/time_model`. So i deleted the bit in make_ros_topic in triggerbox_host i believe so it just always adds slash, and it works! In ubuntu 22 on the testing lenovo. i flashed a freqsh v=13 firmware triggerbox onto the vilros test plate that had a EMG board on it. works great. i get:
+
+```
+spencelab@ros2test:~/ros2_ws/src/triggerbox_ros2$ ros2 run triggerbox_ros2 triggerbox_host 
+INFO:trigger.device:Waiting until serial device confirmed...
+INFO:root.serial:connected to device named ''
+INFO:root.serial:checking firmware version
+INFO:root.serial:checking firmware version
+INFO:root.serial:checking firmware version
+INFO:root.serial:checking firmware version
+INFO:root.serial:checking firmware version
+INFO:root.serial:checking firmware version
+INFO:root.serial:checking firmware version
+INFO:root.serial:checking firmware version
+INFO:root.serial:checking firmware version
+INFO:root.serial:connected to triggerbox firmware version 13
+WARNING:root.serial:No clock measurements until framerate set.
+[INFO] [1751303284.935785077] [triggerbox_host]: triggerbox_host: connected to 'v:13' on device '/dev/ttyACM0'
+[INFO] [1751303284.937879748] [triggerbox_host]: triggerbox_host: setting FPS to 100.0
+INFO:trigger.device:received set_triggerrate command with target of 100.0
+[INFO] [1751303284.938357361] [triggerbox_host]: Got clock model
+INFO:trigger.device:desired rate 100.0 (actual rate 100.0) using ICR1_AND_PRESCALER 0x9C4 64
+[INFO] [1751303284.944930972] [triggerbox_host]: Got clock model
+[INFO] [1751303284.945395432] [triggerbox_host]: triggerbox_host: waiting for clockmodel estimate
+[INFO] [1751303285.447141439] [triggerbox_host]: triggerbox_host: waiting for clockmodel estimate
+[INFO] [1751303285.949792132] [triggerbox_host]: triggerbox_host: waiting for clockmodel estimate
+[INFO] [1751303286.452211598] [triggerbox_host]: triggerbox_host: waiting for clockmodel estimate
+[INFO] [1751303286.954629185] [triggerbox_host]: triggerbox_host: waiting for clockmodel estimate
+[INFO] [1751303287.456994117] [triggerbox_host]: triggerbox_host: waiting for clockmodel estimate
+[INFO] [1751303287.959343659] [triggerbox_host]: triggerbox_host: waiting for clockmodel estimate
+[INFO] [1751303288.460215038] [triggerbox_host]: triggerbox_host: waiting for clockmodel estimate
+[INFO] [1751303288.897180485] [triggerbox_host]: Got clock model
+DEBUG:trigger.device:approximate timer frequency: 99.89752418542193
+[INFO] [1751303288.962573438] [triggerbox_host]: triggerbox_host: got clockmodel estimate
+[INFO] [1751303289.910580327] [triggerbox_host]: Got clock model
+DEBUG:trigger.device:approximate timer frequency: 99.88166720912373
+[INFO] [1751303290.922867025] [triggerbox_host]: Got clock model
+DEBUG:trigger.device:approximate timer frequency: 99.89321736840478
+[INFO] [1751303291.936306345] [triggerbox_host]: Got clock model
+DEBUG:trigger.device:approximate timer frequency: 99.88989040058513
+[INFO] [1751303292.849422258] [triggerbox_host]: Got clock model
+DEBUG:trigger.device:approximate timer frequency: 99.89887679263718
+[INFO] [1751303293.863421914] [triggerbox_host]: Got clock model
+DEBUG:trigger.device:approximate timer frequency: 99.89064213871087
+[INFO] [1751303294.874911549] [triggerbox_host]: Got clock model
+DEBUG:trigger.device:approximate timer frequency: 99.88857880865557
+[INFO] [1751303295.888662594] [triggerbox_host]: Got clock model
+DEBUG:trigger.device:approximate timer frequency: 99.89177746523458
+[INFO] [1751303296.902946154] [triggerbox_host]: Got clock model
+DEBUG:trigger.device:approximate timer frequency: 99.88764501523428
+[INFO] [1751303297.917656235] [triggerbox_host]: Got clock model
+DEBUG:trigger.device:approximate timer frequency: 99.88722978585729
+[INFO] [1751303298.931940264] [triggerbox_host]: Got clock model
+DEBUG:trigger.device:approximate timer frequency: 99.88824280233169
+[INFO] [1751303299.946035008] [triggerbox_host]: Got clock model
+DEBUG:trigger.device:approximate timer frequency: 99.88938141739722
+[INFO] [1751303300.960263708] [triggerbox_host]: Got clock model
+DEBUG:trigger.device:approximate timer frequency: 99.88931348767154
+[INFO] [1751303301.972255338] [triggerbox_host]: Got clock model
+DEBUG:trigger.device:approximate timer frequency: 99.88918245366627
+[INFO] [1751303302.985092249] [triggerbox_host]: Got clock model
+DEBUG:trigger.device:approximate timer frequency: 99.88966828749199
+[INFO] [1751303303.998031260] [triggerbox_host]: Got clock model
+DEBUG:trigger.device:approximate timer frequency: 99.88779585205677
+[INFO] [1751303305.010649616] [triggerbox_host]: Got clock model
+DEBUG:trigger.device:approximate timer frequency: 99.88689567203292
+[INFO] [1751303306.024470742] [triggerbox_host]: Got clock model
+DEBUG:trigger.device:approximate timer frequency: 99.88701791387936
+[INFO] [1751303307.040632250] [triggerbox_host]: Got clock model
+DEBUG:trigger.device:approximate timer frequency: 99.88776427283234
+```
+
+Now examining the topics: in second terminal:
+
+```
+spencelab@ros2test:~$ ros2 topic list
+/parameter_events
+/rosout
+/triggerbox_host/aout_confirm
+/triggerbox_host/aout_raw
+/triggerbox_host/aout_volts
+/triggerbox_host/expected_framerate
+/triggerbox_host/pause_and_reset
+/triggerbox_host/raw_measurements
+/triggerbox_host/set_triggerrate
+/triggerbox_host/time_model
+```
+
+works! to see need . install:
+
+```
+spencelab@ros2test:~$ ros2 topic echo /triggerbox_host/time_model 
+The message type 'triggerbox_ros2_interfaces/msg/TriggerClockModel' is invalid
+spencelab@ros2test:~$ pwd
+/home/spencelab
+spencelab@ros2test:~$ cd ros2_ws/
+spencelab@ros2test:~/ros2_ws$ . install/setup.
+bash: install/setup.: No such file or directory
+spencelab@ros2test:~/ros2_ws$ . install/setup.bash 
+spencelab@ros2test:~/ros2_ws$ ros2 topic list
+/parameter_events
+/rosout
+/triggerbox_host/aout_confirm
+/triggerbox_host/aout_raw
+/triggerbox_host/aout_volts
+/triggerbox_host/expected_framerate
+/triggerbox_host/pause_and_reset
+/triggerbox_host/raw_measurements
+/triggerbox_host/set_triggerrate
+/triggerbox_host/time_model
+spencelab@ros2test:~/ros2_ws$ ros2 topic echo /triggerbox_host/time_model 
+gain: 0.010011299331848193
+offset: 1751303552.5350645
+---
+gain: 0.010011296453507578
+offset: 1751303552.5350807
+---
+gain: 0.010011285478196099
+offset: 1751303552.5351677
+---
+gain: 0.01001133854431243
+offset: 1751303552.534838
+```
+
+
