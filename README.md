@@ -68,7 +68,7 @@ New error...
 
 But I think my topics are missing the node name in front etc. ALSO must always remember to `. install/setup.bash`!
 
-So i get now:
+So i get now: (NOTES ABOUT THIS: I HAD HARDCODED NEW TOPIC NAMES WITH NO BASE. NOW Fixed below.).
 ```
 spencelab@ros2test:~/ros2_ws$ . install/setup.bash 
 spencelab@ros2test:~/ros2_ws$ ros2 topic list
