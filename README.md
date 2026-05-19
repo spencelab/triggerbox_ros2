@@ -1,5 +1,26 @@
 # Porting to ROS2
 
+## 20260519 Getting to work with cambuffer_recorder_ng
+
+Using arduino from my dev box with red proto board shield on top with driver chip and switch and one bnc.
+
+It is flaky. With switch in 5V position (towards USB in jack) switch needs jiggling for to work. Too much time in bags.
+
+But it will work and trigger the ximea nicely at 100hz.
+
+To start it and change frame rat:
+```
+ros2 run triggerbox_ros2 triggerbox_host
+ros2 service call /triggerbox_host/set_framerate triggerbox_ros2_interfaces/srv/SetFramerate "{data: 25.0}"
+```
+
+Figured out with
+```
+ros2 service type /triggerbox_host/set_framerate
+ros2 interface show triggerbox_ros2_interfaces/srv/SetFramerate
+```
+
+## Older work
 1. Just get triggerbox_device.py to work in Python3
 2. On Spence mac...
 3. pip3 install ... no it says use brew... brew... tricky... so
