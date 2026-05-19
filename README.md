@@ -39,6 +39,12 @@ spencelab@ros2test:~/ros2_ws$ cat /etc/security/limits.d/99-realtime.conf
 spencelab@ros2test:~/ros2_ws$ 
 ```
 
+You need to reboot, but **THAT WORKS** and on reboot, running in terminal with no browser open, it dumps to disk with 16 frame ximea buffer and we had ZERO frame drops at the camera for 30 seconds or a minute or so. GREAT! And even cooler you can see the buffer working. camera triggers are on sync but a lag in disk writing follow by catching up!
+
+<img width="3540" height="678" alt="image" src="https://github.com/user-attachments/assets/08c733a6-0f8d-4513-a9e2-6c6894db5a2a" />
+
+See it should be around 10ms, it lags off to 47ms and then a series of 1ms writes catch up!
+
 ## Older work
 1. Just get triggerbox_device.py to work in Python3
 2. On Spence mac...
