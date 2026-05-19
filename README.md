@@ -20,6 +20,25 @@ ros2 service type /triggerbox_host/set_framerate
 ros2 interface show triggerbox_ros2_interfaces/srv/SetFramerate
 ```
 
+### Lots of fun profiling on hardware trigger.
+
+Trying to get the thread rt priority:
+```
+spencelab@ros2test:~/ros2_ws$ sudo groupadd -f realtime
+[sudo] password for spencelab: 
+spencelab@ros2test:~/ros2_ws$ sudo usermod -aG realtime $USER
+spencelab@ros2test:~/ros2_ws$ sudo tee /etc/security/limits.d/99-realtime.conf >/dev/null <<'EOF'
+> @realtime   -   rtprio     80
+@realtime   -   memlock    unlimited
+@realtime   -   nice       -10
+EOF
+spencelab@ros2test:~/ros2_ws$ cat /etc/security/limits.d/99-realtime.conf 
+@realtime   -   rtprio     80
+@realtime   -   memlock    unlimited
+@realtime   -   nice       -10
+spencelab@ros2test:~/ros2_ws$ 
+```
+
 ## Older work
 1. Just get triggerbox_device.py to work in Python3
 2. On Spence mac...
