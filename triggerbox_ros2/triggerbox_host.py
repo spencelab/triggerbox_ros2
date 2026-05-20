@@ -22,10 +22,8 @@ from triggerbox_ros2.triggerbox_device import TriggerboxDevice
 import std_msgs.msg
 
 def _make_ros_topic(base, other):
-    if base == '~':
-        return base+other
-
-    #ensure no start slash and one trailing slash
+    # ensure no start slash and one trailing slash
+    # not sure what this is all about...
     if base[0] == '/':
         base = base[1:]
     if base[-1] == '/':
@@ -38,7 +36,7 @@ class TriggerboxHost(TriggerboxDevice, TriggerboxAPI, Node):
        porting to ROS2 - added Node as third multiple super, so prior code
        see first two supers first. Hopefully they dont mask any ROS2 node stuff.'''
     def __init__(self, device,ros_topic_base='~'):
-        #Node.__init__('triggerbox_host')
+        # Node.__init__('triggerbox_host')
         # if above doesn't work could try below; goal is to call parent Node init:
         super(TriggerboxAPI,self).__init__('triggerbox_host')
         
