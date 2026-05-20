@@ -1,5 +1,15 @@
 # Porting to ROS2
 
+## 20260520 Getting to work on fresh ubuntu 24 camdev in lab
+1. clone this repo into ros2_ws/src
+2. **NEED** to also clone triggerbox_ros2_interfaces
+3. then colcon build will do both and you and try with `source install/setup.bash` then `ros2 run triggerbox_ros2 triggerbox_host`.
+4. you will likely have errors due to no python serial library OR your user spencelab not having been added to dialout.
+5. if former, try `sudo apt install python3-serial`
+6. if latter, try
+```
+
+```
 ## 20260519 Getting to work with cambuffer_recorder_ng
 
 Using arduino from my dev box with red proto board shield on top with driver chip and switch and one bnc.
