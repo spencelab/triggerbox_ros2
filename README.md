@@ -1,5 +1,51 @@
-### Porting to ROS2
+# Porting to ROS2
 
+## 20260519 Getting to work with cambuffer_recorder_ng
+
+Using arduino from my dev box with red proto board shield on top with driver chip and switch and one bnc.
+
+It is flaky. With switch in 5V position (towards USB in jack) switch needs jiggling for to work. Too much time in bags.
+
+But it will work and trigger the ximea nicely at 100hz.
+
+To start it and change frame rat:
+```
+ros2 run triggerbox_ros2 triggerbox_host
+ros2 service call /triggerbox_host/set_framerate triggerbox_ros2_interfaces/srv/SetFramerate "{data: 25.0}"
+```
+
+Figured out with
+```
+ros2 service type /triggerbox_host/set_framerate
+ros2 interface show triggerbox_ros2_interfaces/srv/SetFramerate
+```
+
+### Lots of fun profiling on hardware trigger.
+
+Trying to get the thread rt priority:
+```
+spencelab@ros2test:~/ros2_ws$ sudo groupadd -f realtime
+[sudo] password for spencelab: 
+spencelab@ros2test:~/ros2_ws$ sudo usermod -aG realtime $USER
+spencelab@ros2test:~/ros2_ws$ sudo tee /etc/security/limits.d/99-realtime.conf >/dev/null <<'EOF'
+> @realtime   -   rtprio     80
+@realtime   -   memlock    unlimited
+@realtime   -   nice       -10
+EOF
+spencelab@ros2test:~/ros2_ws$ cat /etc/security/limits.d/99-realtime.conf 
+@realtime   -   rtprio     80
+@realtime   -   memlock    unlimited
+@realtime   -   nice       -10
+spencelab@ros2test:~/ros2_ws$ 
+```
+
+You need to reboot, but **THAT WORKS** and on reboot, running in terminal with no browser open, it dumps to disk with 16 frame ximea buffer and we had ZERO frame drops at the camera for 30 seconds or a minute or so. GREAT! And even cooler you can see the buffer working. camera triggers are on sync but a lag in disk writing follow by catching up!
+
+<img width="3540" height="678" alt="image" src="https://github.com/user-attachments/assets/08c733a6-0f8d-4513-a9e2-6c6894db5a2a" />
+
+See it should be around 10ms, it lags off to 47ms and then a series of 1ms writes catch up!
+
+## Older work
 1. Just get triggerbox_device.py to work in Python3
 2. On Spence mac...
 3. pip3 install ... no it says use brew... brew... tricky... so
@@ -18,7 +64,7 @@ exceptions parentheses...
 5. It runs! Fixing all the Queue to queue...
 6. 
 
-# Getting running on the lenovo box with trig5 arduino
+## Getting running on the lenovo box with trig5 arduino
 
 1. Forgot to commit setup.cfg so it couldnt' find triggerbox_host executable... fixed.
 2. Didn't have serial... did
@@ -68,7 +114,7 @@ New error...
 
 But I think my topics are missing the node name in front etc. ALSO must always remember to `. install/setup.bash`!
 
-So i get now:
+So i get now: (NOTES ABOUT THIS: I HAD HARDCODED NEW TOPIC NAMES WITH NO BASE. NOW Fixed below.).
 ```
 spencelab@ros2test:~/ros2_ws$ . install/setup.bash 
 spencelab@ros2test:~/ros2_ws$ ros2 topic list
@@ -267,4 +313,65 @@ gain: 0.01001133854431243
 offset: 1751303552.534838
 ```
 
+### 2025-06-27 Spence using to test and set up big grey triggerbox with 8 bncs and IR
 
+See the Strawlab_triggerbox wiki page on aspence/spencelab wiki for details. Basically flashed the firmware, changed to trig2, which based on the merb launch file might match the box there, helping with direct swap. Also confirmed in the launch file we want to run a triggerbox_host.
+
+Using the ubuntu 22 test lenovo box, was able to set it's name, and python3 triggerbox_device, but when i did
+
+```
+cd ros2_ws
+. install/setup.bash
+ros2 run triggerbox_ros2 triggerbox_host
+```
+
+I get an error about an invalid topic name becuase of a ~. But my notes above suggest I had it working. How? Where?
+
+```
+In ROS 2, a topic name starting with a tilde (~) signifies a private namespace. This means the topic name will be resolved relative to the node's name, essentially using the node's name as a namespace. For instance, if you have a node named my_node and you publish to a topic named ~topic, the actual topic name will be /my_node/topic. 
+However, the ROS 2 documentation mentions a specific rule for topic names starting with a tilde: they must be separated from the rest of the name with a forward slash (/). So, the correct syntax is ~/foo and not ~foo. This rule is in place to prevent inconsistencies with how ~foo is interpreted in filesystem paths. 
+Therefore, the error you are encountering with ros2 topic likely stems from using ~nodename instead of ~/nodename when specifying a private topic name. You need to include the forward slash after the tilde to indicate a private namespace.
+In summary:
+~ indicates a private namespace, according to Duckietown.
+~/topic_name is the correct syntax for a private topic, according to ROS2 Design.
+Without the forward slash (~), ROS 2 might interpret the tilde differently or throw an error due to the syntax rule. 
+To fix the issue, ensure you are using the correct syntax ~/topic_name when referring to private topics within ros2 topic commands.
+```
+
+Well I dont want a private name space. And above I said it was publishing to /time_model. I think the problem is that we are trying to create a bunch of `~time_model` type topics and that's not allowed in ROS2. Was it in ROS1?
+
+```
+def _make_ros_topic(base, other):
+    if base == '~':
+        return base+other
+
+    #ensure no start slash and one trailing slash
+    if base[0] == '/':
+        base = base[1:]
+    if base[-1] == '/':
+        base = base[:-1]
+
+    return base + '/' + other
+```
+
+I think it should just be /triggerbox_host/time_model etc? Above i just had /time_model in the root space. What do I get in the normal working ROS1 space?
+
+See here:
+https://github.com/aspence/spencelab/wiki/Ubuntu-22-Jammy-ROS-2-Humble-Testing
+
+Yeah on ROS1 we get /triggerbox_node/time_model etc:
+
+how and why? base name gets set to triggerbox_node. launch file? Yep looks like it:
+
+from a ros 1 launch file:
+
+```
+- <node machine="tmill4merb" name="triggerbox_node" pkg="triggerbox"
+    type="triggerbox_host" args="--device /dev/trig2" />
+```
+
+Now is the ros1 triggerbox_host.py code differetn wrt base name? No... but initializing different.
+
+Maybe ROS1 takes ~time_model and makes it /NODE_NAME/time_model
+
+I FIXED ALL ABOVE SEE ABOVE. Just commented out the base combine thing without ~. It just worked.
