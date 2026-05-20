@@ -6,10 +6,8 @@
 3. then colcon build will do both and you and try with `source install/setup.bash` then `ros2 run triggerbox_ros2 triggerbox_host`.
 4. you will likely have errors due to no python serial library OR your user spencelab not having been added to dialout.
 5. if former, try `sudo apt install python3-serial`
-6. if latter, try
-```
+6. if latter, try `sudo adduser spencelab dialout` and then reboot.
 
-```
 ## 20260519 Getting to work with cambuffer_recorder_ng
 
 Using arduino from my dev box with red proto board shield on top with driver chip and switch and one bnc.
