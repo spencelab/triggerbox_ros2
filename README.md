@@ -42,9 +42,12 @@ value=13, pulsenumber=10, ticks=2872
     4. Restart the IDE, maybe you can build triggerbox.ino?
     5. Yes! It works. I flashed an ancient Arduino Nano from home. It came up as `/dev/ttyUSB0` and caused an ubuntu system error when the UDEV rule failed, but no biggy. Had to choose Processer -> AtMega328P (Old Bootloader) for it to flash, otherwise Arduino IDE fell back to programmger and said no response. Awesome.
     6. Then it will still crash as it reads out garbage from EEPROM as the name 0xFF, but version was correct with new `get_triggerbox...` script. So you just need to set a name with: `arduino-udev-name /dev/ttyUSB0 --set-name trig9 --verbose`. i got back
-    7. ```RAW: 0x4E 0x3D 0x74 0x72 0x69 0x67 0x39 0x0 0x0 0x0 0x43 0x37 
-SET NAME: trig9 (0x74 0x72 0x69 0x67 0x39)```
-    8. The you can ping it! with any script. ```spencelab@ros2test:~/ros2_ws/src/triggerbox_ros2/scripts$ ./get_triggerbox_name_version /dev/ttyUSB0
+```
+RAW: 0x4E 0x3D 0x74 0x72 0x69 0x67 0x39 0x0 0x0 0x0 0x43 0x37 
+SET NAME: trig9 (0x74 0x72 0x69 0x67 0x39)
+```
+    7. The you can ping it! with any script.
+```spencelab@ros2test:~/ros2_ws/src/triggerbox_ros2/scripts$ ./get_triggerbox_name_version /dev/ttyUSB0
 Phase 1: udev/name handshake at 9600
 name raw: b'trig9\x00\x00\x00C7'
 name: trig9
@@ -67,7 +70,8 @@ payload length: 7
 payload hex: 0D 0C 00 00 00 F5 14
 checksum: 22
 version decimal=13, hex=0xD
-value=13, pulsenumber=12, ticks=5365```
+value=13, pulsenumber=12, ticks=5365
+```
 12. You can use triggerbox_host in ROS2 with this package if you identify the triggerbox /dev/ttyACM0 etc. just fine. If you want the fancy mapping to it's given name, so it reliably appears as `/dev/trig2` and you can disambiguate it from eg the treadmill, which is really useful, you need to use arduino_udev and do a few more setup steps. Those are:
 ## 20260519 Getting to work with cambuffer_recorder_ng
 
