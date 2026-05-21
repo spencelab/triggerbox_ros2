@@ -37,6 +37,8 @@ class SerialThread(threading.Thread):
         self.device = device
 
         self.version_check_done = False
+        self.firmware_version = None
+        self.output_enabled = False
 
         self._last_aout_sequence = None, None, None
         self._log = logging.getLogger("root.serial")
@@ -125,6 +127,10 @@ class SerialThread(threading.Thread):
                         self.ser.write('S1'.encode('utf-8'))
                     elif cmd=='stop_pulses':
                         self.ser.write('S2'.encode('utf-8'))
+                    elif cmd=='set_output_enabled':
+                        enabled = bool(cmd_tup[1])
+                        self.ser.write(('E1' if enabled else 'E0').encode('utf-8'))
+                        self.output_enabled = enabled
                     elif cmd=='AOut':
                         aout0, aout1 = cmd_tup[1:3]
                         self._set_AOUT( aout0, aout1 )
@@ -166,8 +172,12 @@ class SerialThread(threading.Thread):
                     raise RuntimeError('no version response')
 
     def _handle_version(self, value, pulsenumber, count):
-        assert value==13
+        # Firmware version 13 is the legacy ROS2 triggerbox protocol.
+        # Version 14 adds E0/E1 output blanking while Timer1 keeps running.
+        if value < 13:
+            raise RuntimeError('unsupported triggerbox firmware version %d' % value)
         self._vquery_time = time_func()
+        self.firmware_version = value
         self.version_check_done = value
         self._log.info('connected to triggerbox firmware version %d' % value )
 
@@ -468,6 +478,25 @@ class TriggerboxDevice(threading.Thread):
 
         self.expected_trigger_rate = orig_value
         self._notify_framerate(self.expected_trigger_rate)
+
+    def set_output_enabled(self, enabled):
+        enabled = bool(enabled)
+        self._log.info('triggerbox_device: setting trigger output enabled=%s' % enabled)
+        self.outq.put( ('set_output_enabled', enabled) )
+
+    def enable_output(self):
+        self.set_output_enabled(True)
+
+    def disable_output(self):
+        self.set_output_enabled(False)
+
+    def start_clock(self):
+        self._log.info('triggerbox_device: starting trigger clock')
+        self.outq.put( ('start_pulses',) )
+
+    def stop_clock(self):
+        self._log.info('triggerbox_device: stopping trigger clock')
+        self.outq.put( ('stop_pulses',) )
 
     def set_aout_ab_volts(self, aout0_v, aout1_v):
         aout0 = volts_to_dac(aout0_v)

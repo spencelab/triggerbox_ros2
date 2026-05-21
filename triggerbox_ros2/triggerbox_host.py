@@ -17,6 +17,7 @@ from triggerbox_ros2_interfaces.msg import TriggerClockModel, AOutVolts, AOutRaw
 # Hmm wow the response is a function that gets defined by the ROS framework.
 # Let's hope it's the same in ROS 2.
 from triggerbox_ros2_interfaces.srv import SetFramerate
+from std_srvs.srv import SetBool, Trigger
 from triggerbox_ros2.triggerbox_device import TriggerboxDevice
 
 import std_msgs.msg
@@ -43,6 +44,10 @@ class TriggerboxHost(TriggerboxDevice, TriggerboxAPI, Node):
         self._gain = np.nan
         self._offset = np.nan
         self._expected_framerate = None
+        self._output_enabled = False
+
+        self.declare_parameter('output_enabled_on_start', False)
+        self.declare_parameter('default_fps', 100.0)
 
         self.pub_time = self.create_publisher(
                                 TriggerClockModel,
@@ -55,6 +60,10 @@ class TriggerboxHost(TriggerboxDevice, TriggerboxAPI, Node):
         self.pub_rate = self.create_publisher(
                                 std_msgs.msg.Float32,
                                 _make_ros_topic(ros_topic_base,'expected_framerate'),
+                                qos)
+        self.pub_output_enabled = self.create_publisher(
+                                std_msgs.msg.Bool,
+                                _make_ros_topic(ros_topic_base,'output_enabled'),
                                 qos)
         self.pub_raw = self.create_publisher(
                                 TriggerClockMeasurement,
@@ -93,6 +102,26 @@ class TriggerboxHost(TriggerboxDevice, TriggerboxAPI, Node):
                 SetFramerate,
                 _make_ros_topic(ros_topic_base,'set_framerate'),
                 self._on_set_framerate_service)
+        self.set_output_enabled_srv = self.create_service(
+                SetBool,
+                _make_ros_topic(ros_topic_base,'set_output_enabled'),
+                self._on_set_output_enabled_service)
+        self.enable_output_srv = self.create_service(
+                Trigger,
+                _make_ros_topic(ros_topic_base,'enable_output'),
+                self._on_enable_output_service)
+        self.disable_output_srv = self.create_service(
+                Trigger,
+                _make_ros_topic(ros_topic_base,'disable_output'),
+                self._on_disable_output_service)
+        self.start_clock_srv = self.create_service(
+                Trigger,
+                _make_ros_topic(ros_topic_base,'start_clock'),
+                self._on_start_clock_service)
+        self.stop_clock_srv = self.create_service(
+                Trigger,
+                _make_ros_topic(ros_topic_base,'stop_clock'),
+                self._on_stop_clock_service)
 
         # emit expected frame rate every 5 seconds
         self.timer = self.create_timer(5.0, self._on_emit_framerate)
@@ -119,11 +148,47 @@ class TriggerboxHost(TriggerboxDevice, TriggerboxAPI, Node):
         self.set_frames_per_second_blocking(request.data)
         return response
 
+    def _on_set_output_enabled_service(self, request, response):
+        self.set_output_enabled(request.data)
+        response.success = True
+        response.message = 'trigger output enabled=%s' % bool(request.data)
+        return response
+
+    def _on_enable_output_service(self, request, response):
+        self.enable_output()
+        response.success = True
+        response.message = 'trigger output enabled'
+        return response
+
+    def _on_disable_output_service(self, request, response):
+        self.disable_output()
+        response.success = True
+        response.message = 'trigger output disabled'
+        return response
+
+    def _on_start_clock_service(self, request, response):
+        self.start_clock()
+        response.success = True
+        response.message = 'trigger clock started'
+        return response
+
+    def _on_stop_clock_service(self, request, response):
+        self.stop_clock()
+        response.success = True
+        response.message = 'trigger clock stopped'
+        return response
+
+    def _publish_output_enabled(self):
+        msg = std_msgs.msg.Bool()
+        msg.data = bool(self._output_enabled)
+        self.pub_output_enabled.publish(msg)
+
     def _on_emit_framerate(self, _=None):
         if self._expected_framerate is not None:
             etr = std_msgs.msg.Float32()
             etr.data = self._expected_framerate
             self.pub_rate.publish(etr)
+        self._publish_output_enabled()
 
     #Callbacks from the underlying hardware
     def _notify_framerate(self, expected_trigger_rate):
@@ -217,6 +282,27 @@ class TriggerboxHost(TriggerboxDevice, TriggerboxAPI, Node):
             time.sleep(0.5)
         self.set_frames_per_second(*args, **kwargs)
 
+    def set_output_enabled(self, enabled):
+        enabled = bool(enabled)
+        self.get_logger().info('triggerbox_host: setting physical trigger output enabled=%s' % enabled)
+        TriggerboxDevice.set_output_enabled(self, enabled)
+        self._output_enabled = enabled
+        self._publish_output_enabled()
+
+    def enable_output(self):
+        self.set_output_enabled(True)
+
+    def disable_output(self):
+        self.set_output_enabled(False)
+
+    def start_clock(self):
+        self.get_logger().info('triggerbox_host: starting trigger clock')
+        TriggerboxDevice.start_clock(self)
+
+    def stop_clock(self):
+        self.get_logger().info('triggerbox_host: stopping trigger clock')
+        TriggerboxDevice.stop_clock(self)
+
     def synchronize(self, pause_duration_seconds=2 ):
         self.get_logger().info('triggerbox_host: synchronizing')
         self.pause_and_reset(pause_duration_seconds)
@@ -231,7 +317,17 @@ def main():
     # node = rclpy.create_node('triggerbox_host') <- dont need it's super of tb
     # The bellow will initialize a node from it's superclass;
     tb = TriggerboxHost('/dev/ttyACM0')
-    tb.set_frames_per_second_blocking(100.0)
+    default_fps = float(tb.get_parameter('default_fps').value)
+    output_enabled_on_start = bool(tb.get_parameter('output_enabled_on_start').value)
+
+    tb.set_frames_per_second_blocking(default_fps)
+    # Keep the Timer1 clock running at the selected rate so the clock model can
+    # stabilize, but keep physical trigger pulses blanked unless explicitly enabled.
+    tb.set_output_enabled(output_enabled_on_start)
+    if output_enabled_on_start:
+        tb.get_logger().info('triggerbox_host: physical trigger output ENABLED on start')
+    else:
+        tb.get_logger().info('triggerbox_host: physical trigger output DISABLED on start. Call ~/enable_output or ~/set_output_enabled to emit pulses.')
     tb.wait_for_estimate()
     # ros 1
     # rospy.spin()

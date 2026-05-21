@@ -380,6 +380,24 @@ MCP4822 analogOut = MCP4822(AOUT_CS,AOUT_LDAC);
 
 UDEV udev(Serial);
 
+bool trigger_output_enabled = false;
+
+static inline void set_trigger_output_enabled(bool enabled) {
+    trigger_output_enabled = enabled;
+    if (enabled) {
+        // Connect Timer1 OC1A to the physical trigger pin.
+        // COM1A1:0 = 1,0 means clear OC1A on compare match in fast PWM mode.
+        TCCR1A = (TCCR1A & ~((1 << COM1A1) | (1 << COM1A0))) | (1 << COM1A1);
+        digitalWrite(LEDPin, LOW);
+    } else {
+        // Disconnect Timer1 OC1A from pin 9 while keeping Timer1 running.
+        // This lets the clock model stabilize without emitting camera triggers.
+        TCCR1A &= ~((1 << COM1A1) | (1 << COM1A0));
+        digitalWrite(TrigPin, LOW);
+        digitalWrite(LEDPin, HIGH);
+    }
+}
+
 // Interrupt service routine for timer1 compare -------------------------------
 ISR(TIMER1_COMPA_vect)
 {
@@ -433,8 +451,9 @@ void setup() {
 
     digitalWrite(LEDPin, HIGH);
 
-    // start at 25fps
+    // start Timer1 at 25fps, but keep the physical trigger output blanked by default.
     setup_timer1(0x1B, 0x2710);
+    set_trigger_output_enabled(false);
 }
 
 // Send data with our simple protocol to the host computer ---------------------
@@ -516,7 +535,7 @@ void loop() {
             // version request
             static struct timed_sample version_request;
 
-            version_request.value = 13;
+            version_request.value = 14;
 
             uint8_t SaveSREG_ = SREG;   // save interrupt flag
             cli(); // disable interrupts
@@ -538,13 +557,24 @@ void loop() {
                 pulsenumber = 0;
                 digitalWrite(LEDPin, HIGH);
             } else if (value=='1') {
-                // start clock
+                // start clock; physical output remains controlled by E0/E1
                 TCCR1B = tccr1b_when_running;
-                digitalWrite(LEDPin, LOW);
+                digitalWrite(LEDPin, trigger_output_enabled ? LOW : HIGH);
             } else if (value=='2') {
                 // stop clock
                 TCCR1B = 0x18;
                 digitalWrite(LEDPin, HIGH);
+            }
+
+        } else if (cmd=='E') {
+            // Physical trigger output enable.
+            // E0 disables/blank physical pulses while Timer1 keeps running.
+            // E1 enables physical pulses from Timer1 OC1A.
+            // This does not reset pulsenumber and does not stop the clock.
+            if (value=='0') {
+                set_trigger_output_enabled(false);
+            } else if (value=='1') {
+                set_trigger_output_enabled(true);
             }
 
         } else if (cmd=='T') {
