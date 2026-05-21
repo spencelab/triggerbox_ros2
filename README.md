@@ -7,6 +7,33 @@
 4. you will likely have errors due to no python serial library OR your user spencelab not having been added to dialout.
 5. if former, try `sudo apt install python3-serial`
 6. if latter, try `sudo adduser spencelab dialout` and then reboot.
+7. This code expects and will exit with error if arduino does not have version 13 firmware. (assert in triggerbox_device.py).
+8. I wrote a script in this repo to check if an arduino is flashed with triggerbox by asking for name and version using it's handshaking protocol. it's an executable. call with `./get_triggerbox_name_version` or `./get_triggerbox_name_version /dev/ttyACM0` etc. Gives:
+
+```
+spencelab@ros2test:~/ros2_ws/src/triggerbox_ros2/scripts$ ./get_triggerbox_name_version 
+Phase 1: udev/name handshake at 9600
+name raw: b'trig1\x00\x00\x00DB'
+name: trig1
+crc ok: True
+
+Phase 2: triggerbox firmware version at 115200
+attempt 1: no V packet yet
+attempt 2: no V packet yet
+attempt 3: no V packet yet
+attempt 4: no V packet yet
+attempt 5: no V packet yet
+attempt 6: no V packet yet
+attempt 7: no V packet yet
+attempt 8: no V packet yet
+attempt 9: no V packet yet
+Got V packet on attempt 10
+payload length: 7
+payload hex: 0D 0A 00 00 00 38 0B
+checksum: 5a
+version decimal=13, hex=0xD
+value=13, pulsenumber=10, ticks=2872
+```
 
 ## 20260519 Getting to work with cambuffer_recorder_ng
 
