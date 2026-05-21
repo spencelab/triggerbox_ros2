@@ -36,7 +36,11 @@ value=13, pulsenumber=10, ticks=2872
 ```
 9. The firmware included in this triggerbox_ros2 repo is for version 13.
 10. In order to flash an arduino with this firmware version from ubuntu 24, you can do the following.
-11. You can use triggerbox_host in ROS2 with this package if you identify the triggerbox /dev/ttyACM0 etc. just fine. If you want the fancy mapping to it's given name, so it reliably appears as `/dev/trig2` and you can disambiguate it from eg the treadmill, which is really useful, you need to use arduino_udev and do a few more setup steps. Those are:
+    1. Download install arduino IDE 2.3.8 or newer from arduino, i used appimage, had to properties make executable and `sudo apt install fuse`.
+    2. Download the arduino_udev_ros2 repo from spencelab.
+    3. Copy the UDEV library from arduino_udev_ros2 into the arduino IDE area `cp -r ~/arduino_udev_ros2/firmware/UDEV ~/Arduino/libraries/`
+    4. Restart the IDE, maybe you can build triggerbox.ino?
+12. You can use triggerbox_host in ROS2 with this package if you identify the triggerbox /dev/ttyACM0 etc. just fine. If you want the fancy mapping to it's given name, so it reliably appears as `/dev/trig2` and you can disambiguate it from eg the treadmill, which is really useful, you need to use arduino_udev and do a few more setup steps. Those are:
 ## 20260519 Getting to work with cambuffer_recorder_ng
 
 Using arduino from my dev box with red proto board shield on top with driver chip and switch and one bnc.
