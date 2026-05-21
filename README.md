@@ -1,5 +1,34 @@
 # Porting to ROS2
 
+## 20260521 Output Pulse Enable Disable now working for streaming v14 firmware
+
+For continuous recording, we want to start all the camera nodes and put in hardware trigger mode and have them waiting, and then start the pulses from the triggerbox. That way all cameras should start on the same frame no matter when ROS2 messages might arrive, if we did it with software. So we made the patch below and introdcued v14 firmware. Tested at home with oscilloscope with Arduino Nano `trig9`. Also flashed the firmware in Linux using Arduino 2.3.8 IDE AppImage. Needed (Old Bootloader) in Nano spec. 
+
+Also added specifying the device eg `/dev/trig9` in the triggerbox_host launch. Notes in https://chatgpt.com/g/g-p-6a03947397fc8191b3298417bda72197-camera-ros2-contin/c/6a0394fa-c8ec-83ea-a1c0-96703d8dfd53.
+
+Commands to test pulse enable/disable: (trig9=ttyUSB0)
+```
+~/ros2_ws/src/triggerbox_ros2/scripts/get_triggerbox_name_version /dev/ttyUSB0
+ros2 run triggerbox_ros2 triggerbox_host /dev/trig9
+ros2 service list | grep triggerbox_host
+ros2 topic list | grep output_enabled
+ros2 topic echo /triggerbox_host/output_enabled
+ros2 service call /triggerbox_host/enable_output std_srvs/srv/Trigger "{}"
+# CONFIRMED ON OSCILLOSCOPE 100HZ PULSES on D9 STARTED!
+ros2 service call /triggerbox_host/disable_output std_srvs/srv/Trigger "{}"
+ros2 service call /triggerbox_host/set_output_enabled std_srvs/srv/SetBool "{data: true}"
+ros2 service call /triggerbox_host/set_output_enabled std_srvs/srv/SetBool "{data: false}"
+```
+Intended rig sequence:
+1. Start triggerbox_host.
+2. It sets FPS and starts Timer1 clock, but output is blanked.
+3. Wait for clock model estimate.
+4. Configure/start all camera recorders.
+5. Call /triggerbox_host/enable_output.
+6. Record.
+7. Call /triggerbox_host/disable_output.
+8. Stop camera recorders.
+
 ## 20260520 Getting to work on fresh ubuntu 24 camdev in lab
 1. clone this repo into ros2_ws/src
 2. **NEED** to also clone triggerbox_ros2_interfaces
