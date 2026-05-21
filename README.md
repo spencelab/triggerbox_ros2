@@ -72,7 +72,7 @@ checksum: 22
 version decimal=13, hex=0xD
 value=13, pulsenumber=12, ticks=5365
 ```
-12. You can use triggerbox_host in ROS2 with this package if you identify the triggerbox /dev/ttyACM0 etc. just fine. If you want the fancy mapping to it's given name, so it reliably appears as `/dev/trig2` and you can disambiguate it from eg the treadmill, which is really useful, you need to use arduino_udev and do a few more setup steps. Those are:
+11. You can use triggerbox_host in ROS2 with this package if you identify the triggerbox /dev/ttyACM0 etc. just fine. If you want the fancy mapping to it's given name, so it reliably appears as `/dev/trig2` and you can disambiguate it from eg the treadmill, which is really useful, you need to use arduino_udev and do a few more setup steps. Those are:
 ## 20260519 Getting to work with cambuffer_recorder_ng
 
 Using arduino from my dev box with red proto board shield on top with driver chip and switch and one bnc.
