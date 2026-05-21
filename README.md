@@ -93,6 +93,120 @@ Figured out with
 ros2 service type /triggerbox_host/set_framerate
 ros2 interface show triggerbox_ros2_interfaces/srv/SetFramerate
 ```
+### To install and test the patch for pulse blanking
+
+https://chatgpt.com/g/g-p-6a03947397fc8191b3298417bda72197/c/6a0394fa-c8ec-83ea-a1c0-96703d8dfd53
+
+Yep, this is the right repo now. I made a focused patch for output blanking while the triggerbox clock keeps running.
+
+Download the triggerbox output-blanking patch
+
+What this adds
+
+Firmware now has:
+
+E0 = disable/blank physical trigger output while Timer1 keeps running
+E1 = enable physical trigger output from Timer1
+
+It bumps firmware version from:
+
+13 → 14
+
+so you can confirm the flashed firmware is the new one.
+
+ROS2 host now adds services:
+
+/triggerbox_host/set_output_enabled   std_srvs/srv/SetBool
+/triggerbox_host/enable_output        std_srvs/srv/Trigger
+/triggerbox_host/disable_output       std_srvs/srv/Trigger
+/triggerbox_host/start_clock          std_srvs/srv/Trigger
+/triggerbox_host/stop_clock           std_srvs/srv/Trigger
+
+It also publishes:
+
+/triggerbox_host/output_enabled       std_msgs/msg/Bool
+
+Default behavior is:
+
+Timer1 clock runs at configured FPS.
+Physical trigger output starts DISABLED.
+Clock model can stabilize.
+Cameras do not receive pulses until enable_output.
+
+That is the safe rig behavior. Bench testing can opt into immediate pulses with:
+
+ros2 run triggerbox_ros2 triggerbox_host --ros-args -p output_enabled_on_start:=true
+Branch and apply
+cd ~/ros2_ws/src/triggerbox_ros2
+
+git status
+git switch main
+git pull origin main
+
+git switch -c output-blanking-clock-run
+unzip -o /path/to/triggerbox_ros2_output_blanking_patch.zip
+
+Build:
+
+cd ~/ros2_ws
+
+colcon build --packages-select triggerbox_ros2 \
+  --event-handlers console_direct+
+
+source install/setup.bash
+Flash firmware
+
+Copy/install the updated firmware/triggerbox/triggerbox.ino to Arduino IDE or open it directly.
+
+After flashing, your checker should report:
+
+version decimal=14, hex=0xE
+Test services
+
+Start host:
+
+ros2 run triggerbox_ros2 triggerbox_host
+
+Confirm services:
+
+ros2 service list | grep triggerbox_host
+ros2 topic list | grep output_enabled
+
+Check output state:
+
+ros2 topic echo /triggerbox_host/output_enabled
+
+Enable physical trigger pulses:
+
+ros2 service call /triggerbox_host/enable_output std_srvs/srv/Trigger "{}"
+
+Disable physical trigger pulses:
+
+ros2 service call /triggerbox_host/disable_output std_srvs/srv/Trigger "{}"
+
+Or set directly:
+
+ros2 service call /triggerbox_host/set_output_enabled std_srvs/srv/SetBool "{data: true}"
+ros2 service call /triggerbox_host/set_output_enabled std_srvs/srv/SetBool "{data: false}"
+
+Clock controls, mostly for debugging:
+
+ros2 service call /triggerbox_host/start_clock std_srvs/srv/Trigger "{}"
+ros2 service call /triggerbox_host/stop_clock std_srvs/srv/Trigger "{}"
+Intended rig sequence
+1. Start triggerbox_host.
+2. It sets FPS and starts Timer1 clock, but output is blanked.
+3. Wait for clock model estimate.
+4. Configure/start all camera recorders.
+5. Call /triggerbox_host/enable_output.
+6. Record.
+7. Call /triggerbox_host/disable_output.
+8. Stop camera recorders.
+Notes
+
+This patch does not require changes to triggerbox_ros2_interfaces; it uses standard ROS services from std_srvs.
+
+The default “pulses off” behavior is safer for acquisition. The logs and /output_enabled topic should make it obvious why no pulses are present. Tiny guardrail, fewer accidental rat-cinema jump scares.
 
 ### Lots of fun profiling on hardware trigger.
 
