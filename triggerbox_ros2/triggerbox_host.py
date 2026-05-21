@@ -3,7 +3,6 @@ import sys
 import argparse
 import numpy as np
 import time
-
 # import roslib; roslib.load_manifest('triggerbox')
 # ? ros2
 
@@ -310,31 +309,59 @@ class TriggerboxHost(TriggerboxDevice, TriggerboxAPI, Node):
 # Need a main() function because we have to specify as the entry point
 # in setup.py...
 def main():
-    # ros 1
-    # rospy.init_node('triggerbox_host')
-    # ros2
-    rclpy.init(args=sys.argv)
-    # node = rclpy.create_node('triggerbox_host') <- dont need it's super of tb
-    # The bellow will initialize a node from it's superclass;
-    tb = TriggerboxHost('/dev/ttyACM0')
-    default_fps = float(tb.get_parameter('default_fps').value)
-    output_enabled_on_start = bool(tb.get_parameter('output_enabled_on_start').value)
+    parser = argparse.ArgumentParser(
+        description="ROS2 triggerbox host node"
+    )
+    parser.add_argument(
+        "-d",
+        "--device",
+        default="/dev/ttyACM0",
+        help="Serial device for triggerbox, default: /dev/ttyACM0",
+    )
+
+    # Parse our triggerbox-specific args, but leave ROS2 args alone.
+    # Example:
+    #   ros2 run triggerbox_ros2 triggerbox_host --device /dev/trig9 --ros-args -p default_fps:=100.0
+    args, ros_args = parser.parse_known_args(sys.argv[1:])
+
+    # Pass only ROS args to rclpy.
+    rclpy.init(args=[sys.argv[0]] + ros_args)
+
+    # This initializes the ROS2 node through TriggerboxHost's superclass.
+    tb = TriggerboxHost(args.device)
+
+    tb.get_logger().info(
+        f"triggerbox_host: using serial device '{args.device}'"
+    )
+
+    default_fps = float(tb.get_parameter("default_fps").value)
+    output_enabled_on_start = bool(
+        tb.get_parameter("output_enabled_on_start").value
+    )
 
     tb.set_frames_per_second_blocking(default_fps)
+
     # Keep the Timer1 clock running at the selected rate so the clock model can
     # stabilize, but keep physical trigger pulses blanked unless explicitly enabled.
     tb.set_output_enabled(output_enabled_on_start)
+
     if output_enabled_on_start:
-        tb.get_logger().info('triggerbox_host: physical trigger output ENABLED on start')
+        tb.get_logger().info(
+            "triggerbox_host: physical trigger output ENABLED on start"
+        )
     else:
-        tb.get_logger().info('triggerbox_host: physical trigger output DISABLED on start. Call ~/enable_output or ~/set_output_enabled to emit pulses.')
+        tb.get_logger().info(
+            "triggerbox_host: physical trigger output DISABLED on start. "
+            "Call ~/enable_output or ~/set_output_enabled to emit pulses."
+        )
+
     tb.wait_for_estimate()
-    # ros 1
-    # rospy.spin()
-    # ros 2
-    rclpy.spin(tb)
-    tb.destroy_node() # apparently optional...
-    rclpy.shutdown()
+
+    try:
+        rclpy.spin(tb)
+    finally:
+        tb.destroy_node()
+        rclpy.shutdown()
     
 if __name__=='__main__':
     main()
