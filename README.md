@@ -122,7 +122,8 @@ Figured out with
 ros2 service type /triggerbox_host/set_framerate
 ros2 interface show triggerbox_ros2_interfaces/srv/SetFramerate
 ```
-### To install and test the patch for pulse blanking
+
+## 20260521 Pulse Blanking Version 14 Patch and Test Instructions:
 
 https://chatgpt.com/g/g-p-6a03947397fc8191b3298417bda72197/c/6a0394fa-c8ec-83ea-a1c0-96703d8dfd53
 
@@ -592,3 +593,29 @@ Now is the ros1 triggerbox_host.py code differetn wrt base name? No... but initi
 Maybe ROS1 takes ~time_model and makes it /NODE_NAME/time_model
 
 I FIXED ALL ABOVE SEE ABOVE. Just commented out the base combine thing without ~. It just worked.
+
+
+## Trigger output blanking
+
+Firmware version 14 adds a physical trigger-output gate. The Timer1 clock can
+run and the host clock model can stabilize while the camera trigger pin is
+blanked.
+
+ROS 2 services exposed by `triggerbox_host`:
+
+```bash
+ros2 service call /triggerbox_host/set_output_enabled std_srvs/srv/SetBool "{data: false}"
+ros2 service call /triggerbox_host/enable_output std_srvs/srv/Trigger "{}"
+ros2 service call /triggerbox_host/disable_output std_srvs/srv/Trigger "{}"
+ros2 service call /triggerbox_host/start_clock std_srvs/srv/Trigger "{}"
+ros2 service call /triggerbox_host/stop_clock std_srvs/srv/Trigger "{}"
+```
+
+By default `triggerbox_host` starts with `output_enabled_on_start:=false`: the
+timer runs at the configured frame rate and clock-model messages are generated,
+but no physical trigger pulses are emitted until `enable_output` is called.
+For bench testing, start with:
+
+```bash
+ros2 run triggerbox_ros2 triggerbox_host --ros-args -p output_enabled_on_start:=true
+```
