@@ -1,5 +1,48 @@
 # Porting to ROS2
+## 20260522 Putting v14 on triggerbox arduino off camdev ubuntu 24
+Just worked... but more arduino pfaff than would like. And DONT install the full fuse or it reverts you to fuse 2... ooops i did that on my dev machine.
+1. Download arduino 2 IDE appimage or zip. put in ~/Applications/Ard...
+2. Make the executable executable w permission in gui right click
+3. Add yuor user to dialout group and log in log out so you can access serial
+4. install the fuse thing and do other thigns to make the IDE work
+```
+sudo apt install libfuse2t64
 
+cd ~/Applications/arduino-ide_2.3.8_Linux_64bit
+sudo chown root:root chrome-sandbox
+sudo chmod 4755 chrome-sandbox
+ls -l chrome-sandbox
+
+cat > ~/.local/share/applications/arduino-ide-2.desktop <<'EOF'
+[Desktop Entry]
+Type=Application
+Name=Arduino IDE 2
+Comment=Arduino development environment
+Exec=/home/spencelab/Applications/arduino-ide_2.3.8_Linux_64bit/arduino-ide
+Icon=/home/spencelab/Applications/arduino-ide_2.3.8_Linux_64bit/resources/app/resources/icons/512x512.png
+Terminal=false
+Categories=Development;IDE;Electronics;
+StartupNotify=true
+EOF
+
+chmod +x ~/.local/share/applications/arduino-ide-2.desktop
+update-desktop-database ~/.local/share/applications 2>/dev/null || true
+
+sudo usermod -a -G dialout $USER
+
+#log out, log back in again
+
+Do this:
+
+Open Show Apps
+Search Arduino
+Right-click Arduino IDE 2
+Choose Add to Favorites
+
+That should pin it to the left dock.
+
+./arduino-ide
+```
 ## 20260521 Output Pulse Enable Disable now working for streaming v14 firmware
 
 For continuous recording, we want to start all the camera nodes and put in hardware trigger mode and have them waiting, and then start the pulses from the triggerbox. That way all cameras should start on the same frame no matter when ROS2 messages might arrive, if we did it with software. So we made the patch below and introdcued v14 firmware. Tested at home with oscilloscope with Arduino Nano `trig9`. Also flashed the firmware in Linux using Arduino 2.3.8 IDE AppImage. Needed (Old Bootloader) in Nano spec. 
