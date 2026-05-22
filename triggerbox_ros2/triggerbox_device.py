@@ -7,7 +7,14 @@ import argparse
 import logging
 
 from triggerbox_ros2.time_model import get_time_model, TimeFitError
-from triggerbox_ros2.arduinoudev import serial_handshake
+# By default we require arduino_udev_ros2 to be install! download that 
+# repo and use ./install.sh in it's root dir to put this arduinoudev 
+# library on the system. that is better.
+# If you really want to run the system without doing that, uncomment
+# the line below and comment out the one after. it will use a local
+# version of the library but it may be out of date!
+#from triggerbox_ros2.arduinoudev import serial_handshake
+from arduinoudev import serial_handshake
 
 def uint32(b0,b1,b2,b3):
     return (b3 << 24) + (b2 << 16) + (b1 << 8) + b0
