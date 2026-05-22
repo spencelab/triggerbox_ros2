@@ -43,6 +43,13 @@ That should pin it to the left dock.
 
 ./arduino-ide
 ```
+
+I copied the UDEV library to triggerbox_ros2 repo to ~/Arduino/libraries/UDEV/UDEV.cpp[h] and it just worked and could flash the arduino. 
+
+I pulled the latest triggerbox host and colcon build and it just ran. I use `enable_output` service to turn on pulses. 100Hz works great.
+
+Now on to setting up arduino_udev_ros2 from scratch on this machine. Writing guide on that repo README.
+
 ## 20260521 Output Pulse Enable Disable now working for streaming v14 firmware
 
 For continuous recording, we want to start all the camera nodes and put in hardware trigger mode and have them waiting, and then start the pulses from the triggerbox. That way all cameras should start on the same frame no matter when ROS2 messages might arrive, if we did it with software. So we made the patch below and introdcued v14 firmware. Tested at home with oscilloscope with Arduino Nano `trig9`. Also flashed the firmware in Linux using Arduino 2.3.8 IDE AppImage. Needed (Old Bootloader) in Nano spec. 
