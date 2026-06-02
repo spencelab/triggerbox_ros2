@@ -1,3 +1,15 @@
+# To run it
+With pulses on for testing
+```
+ros2 run triggerbox_ros2 triggerbox_host \
+  --ros-args \
+  -p output_enabled_on_start:=true
+```
+To turn on pulses later for synced start:
+```
+ros2 run triggerbox_ros2 triggerbox_host 
+```
+
 # Porting to ROS2
 ## 20260522 Putting v14 on triggerbox arduino off camdev ubuntu 24
 Just worked... but more arduino pfaff than would like. And DONT install the full fuse or it reverts you to fuse 2... ooops i did that on my dev machine.
