@@ -20,9 +20,10 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'triggerbox_host = triggerbox_ros2.triggerbox_host:main'
+            'triggerbox_host = triggerbox_ros2.triggerbox_host:main',
             # will add client here when we update it's main func
             # to contain all in the old nodes/triggerbox_client.py...
+            'triggerbox_gui = triggerbox_ros2.triggerbox_gui:main'
         ],
     },
 )
