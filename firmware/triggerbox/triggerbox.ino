@@ -380,7 +380,7 @@ MCP4822 analogOut = MCP4822(AOUT_CS,AOUT_LDAC);
 
 UDEV udev(Serial);
 
-bool trigger_output_enabled = false;
+bool trigger_output_enabled = true;
 
 static inline void set_trigger_output_enabled(bool enabled) {
     trigger_output_enabled = enabled;
@@ -451,9 +451,10 @@ void setup() {
 
     digitalWrite(LEDPin, HIGH);
 
-    // start Timer1 at 25fps, but keep the physical trigger output blanked by default.
+    // Start Timer1 at 25 fps with physical trigger output enabled by default.
+    // E0 can still blank the output without stopping Timer1 or resetting pulsenumber.
     setup_timer1(0x1B, 0x2710);
-    set_trigger_output_enabled(false);
+    set_trigger_output_enabled(true);
 }
 
 // Send data with our simple protocol to the host computer ---------------------

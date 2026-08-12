@@ -335,6 +335,7 @@ class TriggerboxGui(QMainWindow):
         self.start_host_button = QPushButton("Start host")
         self.stop_host_button = QPushButton("Stop GUI-launched host")
         self.start_enabled_check = QCheckBox("Enable physical output on start")
+        self.start_enabled_check.setChecked(True)
         self.default_fps_spin = QDoubleSpinBox()
         self.default_fps_spin.setRange(0.0, 2000.0)
         self.default_fps_spin.setDecimals(3)
