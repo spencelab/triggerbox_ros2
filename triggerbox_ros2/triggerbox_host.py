@@ -45,7 +45,7 @@ class TriggerboxHost(TriggerboxDevice, TriggerboxAPI, Node):
         self._expected_framerate = None
         self._output_enabled = False
 
-        self.declare_parameter('output_enabled_on_start', False)
+        self.declare_parameter('output_enabled_on_start', True)
         self.declare_parameter('default_fps', 100.0)
 
         self.pub_time = self.create_publisher(
@@ -341,8 +341,8 @@ def main():
 
     tb.set_frames_per_second_blocking(default_fps)
 
-    # Keep the Timer1 clock running at the selected rate so the clock model can
-    # stabilize, but keep physical trigger pulses blanked unless explicitly enabled.
+    # Keep the Timer1 clock running at the selected rate.  Physical output is
+    # enabled by default for legacy compatibility, but remains parameterizable.
     tb.set_output_enabled(output_enabled_on_start)
 
     if output_enabled_on_start:

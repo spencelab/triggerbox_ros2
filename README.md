@@ -1,13 +1,13 @@
 # To run it
-With pulses on for testing
+Physical trigger pulses are enabled by default for backward compatibility:
+```
+ros2 run triggerbox_ros2 triggerbox_host
+```
+To start with the physical output blanked instead:
 ```
 ros2 run triggerbox_ros2 triggerbox_host \
   --ros-args \
-  -p output_enabled_on_start:=true
-```
-To turn on pulses later for synced start:
-```
-ros2 run triggerbox_ros2 triggerbox_host 
+  -p output_enabled_on_start:=false
 ```
 To change the frame rate
 ```
@@ -224,13 +224,13 @@ It also publishes:
 Default behavior is:
 
 Timer1 clock runs at configured FPS.
-Physical trigger output starts DISABLED.
-Clock model can stabilize.
-Cameras do not receive pulses until enable_output.
+Physical trigger output starts ENABLED by default for backward compatibility.
+The Timer1 clock and physical trigger pulses therefore begin immediately after startup/configuration.
+Newer camera-control workflows may temporarily blank the physical output with disable_output and restore it with enable_output.
 
-That is the safe rig behavior. Bench testing can opt into immediate pulses with:
+To opt into the former blanked-at-start behavior, launch with:
 
-ros2 run triggerbox_ros2 triggerbox_host --ros-args -p output_enabled_on_start:=true
+ros2 run triggerbox_ros2 triggerbox_host --ros-args -p output_enabled_on_start:=false
 Branch and apply
 cd ~/ros2_ws/src/triggerbox_ros2
 
@@ -288,20 +288,16 @@ Clock controls, mostly for debugging:
 
 ros2 service call /triggerbox_host/start_clock std_srvs/srv/Trigger "{}"
 ros2 service call /triggerbox_host/stop_clock std_srvs/srv/Trigger "{}"
-Intended rig sequence
+Current rig behavior
 1. Start triggerbox_host.
-2. It sets FPS and starts Timer1 clock, but output is blanked.
-3. Wait for clock model estimate.
-4. Configure/start all camera recorders.
-5. Call /triggerbox_host/enable_output.
-6. Record.
-7. Call /triggerbox_host/disable_output.
-8. Stop camera recorders.
+2. It sets FPS, starts Timer1, and enables physical trigger output by default.
+3. Camera-control can blank output with /triggerbox_host/disable_output to define one shared hardware endpoint for synchronized RAM-buffer dumps.
+4. After every camera finishes the dump write, camera-control calls /triggerbox_host/enable_output and acquisition continues.
 Notes
 
 This patch does not require changes to triggerbox_ros2_interfaces; it uses standard ROS services from std_srvs.
 
-The default “pulses off” behavior is safer for acquisition. The logs and /output_enabled topic should make it obvious why no pulses are present. Tiny guardrail, fewer accidental rat-cinema jump scares.
+The default is now pulses on for backward compatibility with older acquisition software. Newer camera-control workflows explicitly blank and restore output around synchronized RAM-buffer dumps.
 
 ### Lots of fun profiling on hardware trigger.
 
@@ -663,8 +659,9 @@ I FIXED ALL ABOVE SEE ABOVE. Just commented out the base combine thing without ~
 ## Trigger output blanking
 
 Firmware version 14 adds a physical trigger-output gate. The Timer1 clock can
-run and the host clock model can stabilize while the camera trigger pin is
-blanked.
+run while the camera trigger pin is blanked. The firmware itself now powers
+up with physical trigger output enabled for legacy-system compatibility; E0
+still blanks output and E1 restores it without resetting the clock.
 
 ROS 2 services exposed by `triggerbox_host`:
 
@@ -676,11 +673,10 @@ ros2 service call /triggerbox_host/start_clock std_srvs/srv/Trigger "{}"
 ros2 service call /triggerbox_host/stop_clock std_srvs/srv/Trigger "{}"
 ```
 
-By default `triggerbox_host` starts with `output_enabled_on_start:=false`: the
-timer runs at the configured frame rate and clock-model messages are generated,
-but no physical trigger pulses are emitted until `enable_output` is called.
-For bench testing, start with:
+By default `triggerbox_host` starts with `output_enabled_on_start:=true`: the
+timer runs at the configured frame rate and physical trigger pulses are emitted
+immediately, matching legacy triggerbox behavior. To deliberately start blanked:
 
 ```bash
-ros2 run triggerbox_ros2 triggerbox_host --ros-args -p output_enabled_on_start:=true
+ros2 run triggerbox_ros2 triggerbox_host --ros-args -p output_enabled_on_start:=false
 ```
