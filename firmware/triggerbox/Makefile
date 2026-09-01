@@ -3,7 +3,8 @@
 # see https://github.com/sudar/Arduino-Makefile/
 
 ARDUINO_DIR = /usr/share/arduino
-ARDUINO_PORT = /dev/trig* /dev/ttyUSB*
-BOARD_TAG = nano328
+ARDUINO_PORT = /dev/trig* /dev/ttyACM* /dev/ttyUSB*
+BOARD_TAG = nano
+BOARD_SUB = atmega328old
 ARDUINO_LIBS = SPI EEPROM UDEV
 include /usr/share/arduino/Arduino.mk
